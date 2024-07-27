@@ -37,7 +37,7 @@ public class Apuesta {
             case 3:
                 return monto * 50;
             case 4:
-                return monto * 10000;
+                return monto * 1000;
             default:
                 return 0;
         }
