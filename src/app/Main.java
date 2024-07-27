@@ -165,7 +165,7 @@ public class Main {
         LocalDateTime ahora = LocalDateTime.now();
         for (int i = 0; i < sorteos.size(); i++) {
             Sorteo sorteo = sorteos.get(i);
-            if (sorteo.getFechaHora().isAfter(ahora) && sorteo.getFechaHora().isBefore(ahora.plusMinutes(5))) {
+            if (sorteo.getFechaHora().isAfter(ahora) && sorteo.getFechaHora().isAfter(ahora.plusMinutes(5))) {
                 sorteosActivos.add(sorteo);
                 System.out.println(i + ": Sorteo en " + sorteo.getFechaHora().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
             }
