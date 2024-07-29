@@ -5,12 +5,14 @@ public class Usuario {
     private String telefono;
     private String contraseña;
     private double saldo;
+    private boolean esAdmin;
 
-    public Usuario(String nombre, String telefono, String contraseña, double saldo) {
+    public Usuario(String nombre, String telefono, String contraseña, double saldo, boolean esAdmin) {
         this.nombre = nombre;
         this.telefono = telefono;
         this.contraseña = contraseña;
         this.saldo = saldo;
+        this.esAdmin = esAdmin;
     }
 
     public String getNombre() {
@@ -33,8 +35,11 @@ public class Usuario {
         this.saldo = saldo;
     }
 
-    @Override
-    public String toString() {
-        return nombre + "," + telefono + "," + contraseña + "," + saldo;
+    public boolean isEsAdmin() {
+        return esAdmin;
+    }
+
+    public void setEsAdmin(boolean esAdmin) {
+        this.esAdmin = esAdmin;
     }
 }

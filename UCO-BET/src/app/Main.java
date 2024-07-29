@@ -1,241 +1,319 @@
 package app;
 
 import domain.*;
+import util.ArchivoUtil;
+import util.ExcepcionesUcoBet;
+
 import javax.swing.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
-    private static List<Usuario> usuarios = new ArrayList<>();
-    private static List<Sorteo> sorteos = new ArrayList<>();
-    private static Historial historial = new Historial();
-    private static Administrador admin;
+    private static final String ARCHIVO_USUARIOS = "usuarios.txt";
+    private static final String ARCHIVO_SORTEOS = "sorteos.txt";
 
     public static void main(String[] args) {
-        // Cargar usuarios desde archivo
+        GestorUsuarios gestorUsuarios = new GestorUsuarios();
+        GestorSorteos gestorSorteos = new GestorSorteos();
+
         try {
-            usuarios = ArchivoUtil.cargarUsuarios("usuarios.txt");
+            List<Usuario> usuarios = ArchivoUtil.cargarUsuarios(ARCHIVO_USUARIOS);
+            if (usuarios.isEmpty()) {
+                gestorUsuarios.crearAdministrador("admin", "admin123", "admin123");
+                ArchivoUtil.guardarUsuarios(ARCHIVO_USUARIOS, gestorUsuarios.obtenerUsuarios());
+            } else {
+                gestorUsuarios.setUsuarios(usuarios);
+            }
+        } catch (IOException | ExcepcionesUcoBet e) {
+            e.printStackTrace();
+        }
+
+        try {
+            gestorSorteos.setSorteos(ArchivoUtil.cargarSorteos(ARCHIVO_SORTEOS));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        // Crear administrador inicial si no existe
-        if (usuarios.stream().noneMatch(u -> u instanceof Administrador)) {
-            admin = new Administrador("admin", "0000000000", "admin123", 0);
-            usuarios.add(admin);
-        }
+        mostrarMenuPrincipal(gestorUsuarios, gestorSorteos);
+    }
 
+    private static void mostrarMenuPrincipal(GestorUsuarios gestorUsuarios, GestorSorteos gestorSorteos) {
         while (true) {
-            mostrarHoraActual();
-            String[] opciones = {"Iniciar Sesión como Usuario", "Iniciar Sesión como Administrador", "Crear Cuenta de Usuario", "Salir"};
-            int opcion = JOptionPane.showOptionDialog(null, "Seleccione una opción", "Uco-main",
-                    JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, opciones, opciones[0]);
+            String opcion = JOptionPane.showInputDialog(null, "Hora actual: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "\n1. Iniciar sesión como usuario\n2. Iniciar sesión como administrador\n3. Crear cuenta de usuario\n4. Salir", "Menú principal", JOptionPane.PLAIN_MESSAGE);
+
+            if (opcion == null || opcion.equals("4")) {
+                break;
+            }
 
             switch (opcion) {
-                case 0:
-                    iniciarSesionUsuario();
+                case "1":
+                    iniciarSesionUsuario(gestorUsuarios, gestorSorteos);
                     break;
-                case 1:
-                    iniciarSesionAdministrador();
+                case "2":
+                    iniciarSesionAdministrador(gestorUsuarios, gestorSorteos);
                     break;
-                case 2:
-                    crearUsuario();
-                    break;
-                case 3:
-                    guardarUsuariosYSalir();
+                case "3":
+                    crearCuentaUsuario(gestorUsuarios);
                     break;
                 default:
-                    break;
+                    JOptionPane.showMessageDialog(null, "Opción inválida. Inténtelo de nuevo.");
             }
         }
     }
 
-    private static void iniciarSesionUsuario() {
-        String nombre = JOptionPane.showInputDialog("Ingrese su nombre:");
-        String contraseña = JOptionPane.showInputDialog("Ingrese su contraseña:");
+    private static void iniciarSesionUsuario(GestorUsuarios gestorUsuarios, GestorSorteos gestorSorteos) {
+        String nombre = JOptionPane.showInputDialog("Nombre:");
+        String contraseña = JOptionPane.showInputDialog("Contraseña:");
 
-        Usuario usuario = autenticarUsuario(nombre, contraseña);
-        if (usuario != null && !(usuario instanceof Administrador)) {
-            menuUsuario(usuario);
-        } else {
-            JOptionPane.showMessageDialog(null, "Credenciales incorrectas o el usuario es un administrador.");
-        }
-    }
-
-    private static void iniciarSesionAdministrador() {
-        String nombre = JOptionPane.showInputDialog("Ingrese su nombre:");
-        String contraseña = JOptionPane.showInputDialog("Ingrese su contraseña:");
-
-        Usuario usuario = autenticarUsuario(nombre, contraseña);
-        if (usuario != null && usuario instanceof Administrador) {
-            menuAdministrador((Administrador) usuario);
-        } else {
-            JOptionPane.showMessageDialog(null, "Credenciales incorrectas o el usuario no es un administrador.");
-        }
-    }
-
-    private static Usuario autenticarUsuario(String nombre, String contraseña) {
-        for (Usuario usuario : usuarios) {
-            if (usuario.getNombre().equals(nombre) && usuario.getContraseña().equals(contraseña)) {
-                return usuario;
-            }
-        }
-        return null;
-    }
-
-    private static void menuAdministrador(Administrador administrador) {
-        while (true) {
-            mostrarHoraActual();
-            String[] opciones = {"Programar Sorteo", "Ver Historial de Sorteos", "Crear Administrador", "Cerrar Sesión"};
-            int opcion = JOptionPane.showOptionDialog(null, "Seleccione una opción", "Administrador",
-                    JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, opciones, opciones[0]);
-
-            switch (opcion) {
-                case 0:
-                    programarSorteo();
-                    break;
-                case 1:
-                    verHistorialCompleto();
-                    break;
-                case 2:
-                    crearAdministrador();
-                    break;
-                case 3:
-                    return;
-                default:
-                    break;
-            }
-        }
-    }
-
-    private static void menuUsuario(Usuario usuario) {
-        while (true) {
-            mostrarHoraActual();
-            String[] opciones = {"Realizar Apuesta", "Ver Historial de Sorteos", "Cerrar Sesión"};
-            int opcion = JOptionPane.showOptionDialog(null, "Seleccione una opción", "Usuario",
-                    JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, opciones, opciones[0]);
-
-            switch (opcion) {
-                case 0:
-                    crearApuesta(usuario);
-                    break;
-                case 1:
-                    verHistorialUsuario();
-                    break;
-                case 2:
-                    return;
-                default:
-                    break;
-            }
-        }
-    }
-
-    private static void programarSorteo() {
-        String fecha = JOptionPane.showInputDialog("Ingrese la fecha del sorteo (yyyy-MM-dd HH:mm):");
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        LocalDateTime fechaHora = LocalDateTime.parse(fecha, formatter);
-        Sorteo sorteo = new Sorteo(fechaHora);
-        sorteos.add(sorteo);
-        JOptionPane.showMessageDialog(null, "Sorteo programado para " + fechaHora);
-    }
-
-    private static void crearApuesta(Usuario usuario) {
-        if (sorteos.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No hay sorteos disponibles.");
+        Usuario usuario = gestorUsuarios.autenticarUsuario(nombre, contraseña);
+        if (usuario == null || usuario.isEsAdmin()) {
+            JOptionPane.showMessageDialog(null, "Credenciales inválidas o no tiene permisos de usuario.");
             return;
         }
 
-        String mensajeSorteos = "Sorteos disponibles:\n";
-        for (int i = 0; i < sorteos.size(); i++) {
-            Sorteo sorteo = sorteos.get(i);
-            if (!sorteo.isFinalizado() && LocalDateTime.now().isBefore(sorteo.getFechaHora().minusMinutes(5))) {
-                mensajeSorteos += (i + 1) + ". Sorteo en " + sorteo.getFechaHora() + "\n";
-            }
+        mostrarMenuUsuario(usuario, gestorSorteos);
+    }
+
+    private static void iniciarSesionAdministrador(GestorUsuarios gestorUsuarios, GestorSorteos gestorSorteos) {
+        String nombre = JOptionPane.showInputDialog("Nombre:");
+        String contraseña = JOptionPane.showInputDialog("Contraseña:");
+
+        Usuario administrador = gestorUsuarios.autenticarUsuario(nombre, contraseña);
+        if (administrador == null || !administrador.isEsAdmin()) {
+            JOptionPane.showMessageDialog(null, "Credenciales inválidas o no tiene permisos de administrador.");
+            return;
         }
 
-        int opcionSorteo = Integer.parseInt(JOptionPane.showInputDialog(mensajeSorteos + "Seleccione un sorteo (número):"));
-        Sorteo sorteoSeleccionado = sorteos.get(opcionSorteo - 1);
-
-        int numero = Integer.parseInt(JOptionPane.showInputDialog("Ingrese el número (1-9999):"));
-        double monto = Double.parseDouble(JOptionPane.showInputDialog("Ingrese el monto a apostar:"));
-
-        Apuesta apuesta = new Apuesta(usuario, numero, monto);
-        sorteoSeleccionado.agregarApuesta(apuesta);
-        usuario.setSaldo(usuario.getSaldo() - monto);
-        JOptionPane.showMessageDialog(null, "Apuesta realizada.");
+        mostrarMenuAdministrador(gestorUsuarios, gestorSorteos, administrador);
     }
 
-    private static void crearAdministrador() {
-        String nombre = JOptionPane.showInputDialog("Ingrese el nombre del administrador:");
-        String telefono = JOptionPane.showInputDialog("Ingrese el teléfono del administrador:");
-        String contraseña = JOptionPane.showInputDialog("Ingrese la contraseña del administrador:");
+    private static void crearCuentaUsuario(GestorUsuarios gestorUsuarios) {
+        String nombre = JOptionPane.showInputDialog("Nombre:");
+        String telefono = JOptionPane.showInputDialog("Teléfono:");
+        String contraseña = JOptionPane.showInputDialog("Contraseña:");
+        String saldoStr = JOptionPane.showInputDialog("Saldo inicial:");
 
-        Administrador nuevoAdmin = new Administrador(nombre, telefono, contraseña, 0);
-        usuarios.add(nuevoAdmin);
-        JOptionPane.showMessageDialog(null, "Administrador creado.");
-    }
-
-    private static void crearUsuario() {
-        String nombre = JOptionPane.showInputDialog("Ingrese su nombre:");
-        String telefono = JOptionPane.showInputDialog("Ingrese su teléfono:");
-        String contraseña = JOptionPane.showInputDialog("Ingrese su contraseña:");
-
-        Usuario nuevoUsuario = new Usuario(nombre, telefono, contraseña, 1000); // Saldo inicial de 1000
-        usuarios.add(nuevoUsuario);
-        JOptionPane.showMessageDialog(null, "Usuario creado.");
-    }
-
-    private static void guardarUsuariosYSalir() {
         try {
-            ArchivoUtil.guardarUsuarios("usuarios.txt", usuarios);
+            double saldoInicial = Double.parseDouble(saldoStr);
+            gestorUsuarios.crearUsuario(nombre, telefono, contraseña, saldoInicial);
+            ArchivoUtil.guardarUsuarios(ARCHIVO_USUARIOS, gestorUsuarios.obtenerUsuarios());
+            JOptionPane.showMessageDialog(null, "Cuenta creada exitosamente.");
+        } catch (ExcepcionesUcoBet | IOException | NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
+        }
+    }
+
+    private static void mostrarMenuUsuario(Usuario usuario, GestorSorteos gestorSorteos) {
+        while (true) {
+            String opcion = JOptionPane.showInputDialog(null, "1. Ver sorteos activos\n2. Realizar apuesta\n3. Ver historial de sorteos\n4. Salir", "Menú de Usuario", JOptionPane.PLAIN_MESSAGE);
+
+            if (opcion == null || opcion.equals("4")) {
+                break;
+            }
+
+            switch (opcion) {
+                case "1":
+                    verSorteosActivos(gestorSorteos);
+                    break;
+                case "2":
+                    realizarApuesta(usuario, gestorSorteos);
+                    break;
+                case "3":
+                    verHistorialSorteos(gestorSorteos);
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(null, "Opción inválida. Inténtelo de nuevo.");
+            }
+        }
+    }
+
+    private static void mostrarMenuAdministrador(GestorUsuarios gestorUsuarios, GestorSorteos gestorSorteos, Usuario administrador) {
+        while (true) {
+            String opcion = JOptionPane.showInputDialog(null, "1. Crear sorteo\n2. Ver historial de sorteos\n3. Crear nuevo administrador\n4. Recargar saldo a usuario\n5. Salir", "Menú de Administrador", JOptionPane.PLAIN_MESSAGE);
+
+            if (opcion == null || opcion.equals("5")) {
+                break;
+            }
+
+            switch (opcion) {
+                case "1":
+                    crearSorteo(gestorSorteos);
+                    break;
+                case "2":
+                    verHistorialSorteos(gestorSorteos);
+                    break;
+                case "3":
+                    crearNuevoAdministrador(gestorUsuarios);
+                    break;
+                case "4":
+                    recargarSaldoUsuario(gestorUsuarios);
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(null, "Opción inválida. Inténtelo de nuevo.");
+            }
+        }
+    }
+
+    private static void verSorteosActivos(GestorSorteos gestorSorteos) {
+        List<Sorteo> sorteosActivos = gestorSorteos.obtenerSorteosActivos();
+        if (sorteosActivos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay sorteos activos.");
+        } else {
+            StringBuilder sb = new StringBuilder("Sorteos Activos:\n");
+            for (Sorteo sorteo : sorteosActivos) {
+                sb.append(sorteo.toString()).append("\n");
+            }
+            JOptionPane.showMessageDialog(null, sb.toString());
+        }
+    }
+
+    private static void realizarApuesta(Usuario usuario, GestorSorteos gestorSorteos) {
+        List<Sorteo> sorteosActivos = gestorSorteos.obtenerSorteosActivos();
+        if (sorteosActivos.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay sorteos activos.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("Sorteos Activos:\n");
+        for (int i = 0; i < sorteosActivos.size(); i++) {
+            sb.append(i).append(". ").append(sorteosActivos.get(i).toString()).append("\n");
+        }
+        String sorteoSeleccionado = JOptionPane.showInputDialog(sb.toString() + "Seleccione un sorteo:");
+        int indiceSorteo;
+        try {
+            indiceSorteo = Integer.parseInt(sorteoSeleccionado);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Selección inválida.");
+            return;
+        }
+
+        if (indiceSorteo < 0 || indiceSorteo >= sorteosActivos.size()) {
+            JOptionPane.showMessageDialog(null, "Selección inválida.");
+            return;
+        }
+
+        Sorteo sorteo = sorteosActivos.get(indiceSorteo);
+        String numeroStr = JOptionPane.showInputDialog("Ingrese el número a apostar (1-9999):");
+        int numero;
+        try {
+            numero = Integer.parseInt(numeroStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Número inválido.");
+            return;
+        }
+
+        if (numero < 1 || numero > 9999) {
+            JOptionPane.showMessageDialog(null, "Número fuera de rango.");
+            return;
+        }
+
+        String montoStr = JOptionPane.showInputDialog("Ingrese el monto a apostar:");
+        double monto;
+        try {
+            monto = Double.parseDouble(montoStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Monto inválido.");
+            return;
+        }
+
+        try {
+            gestorSorteos.realizarApuesta(usuario, sorteo, numero, monto);
+            JOptionPane.showMessageDialog(null, "Apuesta realizada exitosamente.");
+        } catch (ExcepcionesUcoBet e) {
+            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
+        }
+    }
+
+    private static void crearSorteo(GestorSorteos gestorSorteos) {
+        String fechaHoraStr = JOptionPane.showInputDialog("Ingrese la fecha y hora del sorteo (yyyy-MM-dd HH:mm):");
+        LocalDateTime fechaHora;
+        try {
+            fechaHora = LocalDateTime.parse(fechaHoraStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Formato de fecha y hora inválido.");
+            return;
+        }
+
+        String numeroGanadorStr = JOptionPane.showInputDialog("Ingrese el número ganador (1-9999):");
+        int numeroGanador;
+        try {
+            numeroGanador = Integer.parseInt(numeroGanadorStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Número ganador inválido.");
+            return;
+        }
+
+        if (numeroGanador < 1 || numeroGanador > 9999) {
+            JOptionPane.showMessageDialog(null, "Número ganador fuera de rango.");
+            return;
+        }
+
+        try {
+            gestorSorteos.crearSorteo(fechaHora, numeroGanador);
+            ArchivoUtil.guardarSorteos(ARCHIVO_SORTEOS, gestorSorteos.obtenerSorteos());
+            JOptionPane.showMessageDialog(null, "Sorteo creado exitosamente.");
         } catch (IOException e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al guardar el sorteo.");
+        } catch (ExcepcionesUcoBet e) {
+            throw new RuntimeException(e);
         }
-        System.exit(0);
     }
 
-    private static void mostrarHoraActual() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        LocalDateTime ahora = LocalDateTime.now();
-        JOptionPane.showMessageDialog(null, "Hora actual: " + ahora.format(formatter));
+    private static void crearNuevoAdministrador(GestorUsuarios gestorUsuarios) {
+        String nombre = JOptionPane.showInputDialog("Nombre:");
+        String telefono = JOptionPane.showInputDialog("Teléfono:");
+        String contraseña = JOptionPane.showInputDialog("Contraseña:");
+
+        try {
+            gestorUsuarios.crearAdministrador(nombre, telefono, contraseña);
+            ArchivoUtil.guardarUsuarios(ARCHIVO_USUARIOS, gestorUsuarios.obtenerUsuarios());
+            JOptionPane.showMessageDialog(null, "Administrador creado exitosamente.");
+        } catch (ExcepcionesUcoBet | IOException e) {
+            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
+        }
     }
 
-    private static void verHistorialCompleto() {
-        StringBuilder historialTexto = new StringBuilder();
-        for (Sorteo sorteo : historial.obtenerSorteos()) {
-            historialTexto.append("Sorteo: ").append(sorteo.getFechaHora())
-                    .append(", Número ganador: ").append(sorteo.getNumeroGanador())
-                    .append("\n");
-            for (Apuesta apuesta : sorteo.getApuestas()) {
-                historialTexto.append("Usuario: ").append(apuesta.getUsuario().getNombre())
-                        .append(", Número: ").append(apuesta.getNumero())
-                        .append(", Monto: ").append(apuesta.getMonto())
-                        .append(", Ganancia: ").append(apuesta.calcularGanancia())
-                        .append("\n");
+    private static void recargarSaldoUsuario(GestorUsuarios gestorUsuarios) {
+        String listaUsuarios = gestorUsuarios.obtenerListaUsuarios();
+        String seleccion = JOptionPane.showInputDialog(listaUsuarios + "Seleccione el índice del usuario a recargar saldo:");
+        int indice;
+        try {
+            indice = Integer.parseInt(seleccion);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Selección inválida.");
+            return;
+        }
+
+        String montoStr = JOptionPane.showInputDialog("Ingrese el monto a recargar:");
+        double monto;
+        try {
+            monto = Double.parseDouble(montoStr);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Monto inválido.");
+            return;
+        }
+
+        try {
+            gestorUsuarios.recargarSaldo(indice, monto);
+            ArchivoUtil.guardarUsuarios(ARCHIVO_USUARIOS, gestorUsuarios.obtenerUsuarios());
+            JOptionPane.showMessageDialog(null, "Saldo recargado exitosamente.");
+        } catch (ExcepcionesUcoBet | IOException e) {
+            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
+        }
+    }
+
+    private static void verHistorialSorteos(GestorSorteos gestorSorteos) {
+        List<Sorteo> historial = gestorSorteos.obtenerHistorialSorteos();
+        if (historial.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay sorteos en el historial.");
+        } else {
+            StringBuilder sb = new StringBuilder("Historial de Sorteos:\n");
+            for (Sorteo sorteo : historial) {
+                sb.append(sorteo.toString()).append("\n");
             }
-            historialTexto.append("\n");
+            JOptionPane.showMessageDialog(null, sb.toString());
         }
-        JOptionPane.showMessageDialog(null, historialTexto.toString());
-    }
-
-    private static void verHistorialUsuario() {
-        StringBuilder historialTexto = new StringBuilder();
-        for (Sorteo sorteo : historial.obtenerSorteos()) {
-            historialTexto.append("Sorteo: ").append(sorteo.getFechaHora())
-                    .append(", Número ganador: ").append(sorteo.getNumeroGanador())
-                    .append("\n");
-            for (Apuesta apuesta : sorteo.getApuestas()) {
-                historialTexto.append("Usuario: ").append(apuesta.getUsuario().getNombre())
-                        .append(", Número: ").append(apuesta.getNumero())
-                        .append(", Monto: ").append(apuesta.getMonto())
-                        .append(", Ganancia: ").append(apuesta.calcularGanancia())
-                        .append("\n");
-            }
-            historialTexto.append("\n");
-        }
-        JOptionPane.showMessageDialog(null, historialTexto.toString());
     }
 }

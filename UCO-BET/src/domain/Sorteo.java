@@ -1,20 +1,16 @@
 package domain;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 public class Sorteo {
     private LocalDateTime fechaHora;
     private int numeroGanador;
-    private boolean finalizado;
-    private List<Apuesta> apuestas;
+    private boolean activo;
 
-    public Sorteo(LocalDateTime fechaHora) {
+    public Sorteo(LocalDateTime fechaHora, int numeroGanador, boolean activo) {
         this.fechaHora = fechaHora;
-        this.finalizado = false;
-        this.apuestas = new ArrayList<>();
+        this.numeroGanador = numeroGanador;
+        this.activo = activo;
     }
 
     public LocalDateTime getFechaHora() {
@@ -25,31 +21,20 @@ public class Sorteo {
         return numeroGanador;
     }
 
-    public boolean isFinalizado() {
-        return finalizado;
+    public boolean estaActivo() {
+        return activo;
     }
 
-    public List<Apuesta> getApuestas() {
-        return apuestas;
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 
-    public void agregarApuesta(Apuesta apuesta) {
-        apuestas.add(apuesta);
-    }
-
-    public void finalizarSorteo() {
-        Random random = new Random();
-        this.numeroGanador = random.nextInt(9999) + 1;
-        this.finalizado = true;
-    }
-
-    public List<Usuario> obtenerGanadores() {
-        List<Usuario> ganadores = new ArrayList<>();
-        for (Apuesta apuesta : apuestas) {
-            if (apuesta.getNumero() == numeroGanador) {
-                ganadores.add(apuesta.getUsuario());
-            }
-        }
-        return ganadores;
+    @Override
+    public String toString() {
+        return "Sorteo{" +
+                "fechaHora=" + fechaHora +
+                ", numeroGanador=" + numeroGanador +
+                ", activo=" + activo +
+                '}';
     }
 }

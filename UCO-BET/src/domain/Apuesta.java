@@ -1,5 +1,8 @@
 package domain;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 public class Apuesta {
     private Usuario usuario;
     private int numero;
@@ -24,8 +27,8 @@ public class Apuesta {
     }
 
     public double calcularGanancia() {
-        int longitudNumero = String.valueOf(numero).length();
-        switch (longitudNumero) {
+        int digitos = String.valueOf(numero).length();
+        switch (digitos) {
             case 1:
                 return monto * 10;
             case 2:
