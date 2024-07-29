@@ -38,8 +38,4 @@ public class Usuario {
     public boolean isEsAdmin() {
         return esAdmin;
     }
-
-    public void setEsAdmin(boolean esAdmin) {
-        this.esAdmin = esAdmin;
-    }
 }

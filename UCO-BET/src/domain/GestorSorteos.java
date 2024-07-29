@@ -13,11 +13,12 @@ public class GestorSorteos {
         this.sorteos = new ArrayList<>();
     }
 
-    public void crearSorteo(LocalDateTime fechaHora, int numeroGanador) throws ExcepcionesUcoBet {
-        if (fechaHora.isBefore(LocalDateTime.now())) {
-            throw new ExcepcionesUcoBet("La fecha y hora del sorteo deben ser futuras.");
-        }
-        sorteos.add(new Sorteo(fechaHora, numeroGanador, true));
+    public void setSorteos(List<Sorteo> sorteos) {
+        this.sorteos = sorteos;
+    }
+
+    public List<Sorteo> obtenerSorteos() {
+        return sorteos;
     }
 
     public List<Sorteo> obtenerSorteosActivos() {
@@ -30,35 +31,16 @@ public class GestorSorteos {
         return activos;
     }
 
-    public List<Sorteo> obtenerHistorialSorteos() {
-        List<Sorteo> historial = new ArrayList<>();
-        for (Sorteo sorteo : sorteos) {
-            if (!sorteo.estaActivo()) {
-                historial.add(sorteo);
-            }
-        }
-        return historial;
+    public void crearSorteo(LocalDateTime fechaHora, int numeroGanador) {
+        Sorteo nuevoSorteo = new Sorteo(fechaHora, numeroGanador, true);
+        sorteos.add(nuevoSorteo);
     }
 
-    public void realizarApuesta(Usuario usuario, Sorteo sorteo, int numero, double monto) throws ExcepcionesUcoBet {
-        if (usuario.getSaldo() < monto) {
-            throw new ExcepcionesUcoBet("Saldo insuficiente.");
+    public void agregarApuesta(Sorteo sorteo, Usuario usuario, int numeroApostado, double monto) throws ExcepcionesUcoBet {
+        if (!sorteo.estaActivo()) {
+            throw new ExcepcionesUcoBet("El sorteo no está activo.");
         }
-
-        long minutosRestantes = java.time.Duration.between(LocalDateTime.now(), sorteo.getFechaHora()).toMinutes();
-        if (minutosRestantes < 5) {
-            throw new ExcepcionesUcoBet("La apuesta debe realizarse al menos 5 minutos antes del sorteo.");
-        }
-
-        usuario.setSaldo(usuario.getSaldo() - monto);
-        // Aquí puedes agregar la lógica para registrar la apuesta en el sorteo
-    }
-
-    public void setSorteos(List<Sorteo> sorteos) {
-        this.sorteos = sorteos;
-    }
-
-    public List<Sorteo> obtenerSorteos() {
-        return sorteos;
+        Apuesta nuevaApuesta = new Apuesta(usuario, numeroApostado, monto);
+        sorteo.agregarApuesta(nuevaApuesta);
     }
 }
