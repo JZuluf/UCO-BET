@@ -1,0 +1,3 @@
+nombre1,telefono1,contraseña1,saldo1,false
+nombre2,telefono2,contraseña2,saldo2,false
+admin,0000000000,admin123,0,true
